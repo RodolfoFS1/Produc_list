@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/images/favicon-32x32.png">
+  <title>Frontend Mentor | Product list with cart</title>
+  <style>
+    .attribution { font-size: 11px; text-align: center; }
+    .attribution a { color: hsl(228, 45%, 44%); }
+    
+    /* Ajustes para la cuadrícula de 3x3 */
+    .product-list {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr); /* 3 columnas */
+        gap: 10px; /* Espacio reducido entre los recuadros */
+        padding: 10px; /* Padding alrededor de la cuadrícula */
+        box-sizing: border-box; /* Asegura que el padding no afecte el tamaño total */
+        margin-bottom: 250px; /* Espacio suficiente para el carrito */
+    }
+
+    .product-item {
+        border: 3px solid orange;
+        padding: 5px; /* Reducir padding para hacer el contenedor más delgado */
+        text-align: center;
+        box-sizing: border-box; /* Asegura que el padding no afecte el tamaño total */
+        background-color: wheat; /* Fondo blanco para cada producto */
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Centra el contenido */
+        max-width: 230px; /* Ancho máximo reducido */
+        height: auto; /* Ajusta la altura automáticamente */
+    }
+
+    .product-item img {
+        width: 140px; /* Tamaño reducido de las imágenes */
+        height: 140px; /* Mantener proporción cuadrada */
+        object-fit: cover; /* Ajusta la imagen para cubrir el área */
+        margin-bottom: 5px; /* Espacio entre la imagen y el texto */
+    }
+
+    /* Estilos para los botones */
+    .product-item button {
+        padding: 6px 8px; /* Reducir padding en los botones */
+        border: none;
+        color: white;
+        background-color: #4CAF50; /* Color de fondo del botón de agregar */
+        cursor: pointer;
+        margin-top: 5px;
+        font-size: 12px; /* Tamaño de la fuente en el botón */
+        border-radius: 4px; /* Bordes redondeados para los botones */
+    }
+
+    /* Estilo para el botón de eliminar */
+    .product-item .remove-from-cart {
+        background-color: #f44336; /* Color rojo para el botón de eliminar */
+    }
+
+    /* Efecto hover para los botones */
+    .product-item button:hover {
+        background-color: #45a049; /* Color al pasar el mouse por encima */
+    }
+
+    .product-item .remove-from-cart:hover {
+        background-color: #e53935; /* Hover para el botón de eliminar */
+    }
+
+    .cart {
+        border: 3px solid orange;
+        padding: 10px; /* Padding alrededor del carrito */
+        width: 250px; /* Ancho del carrito */
+        position: fixed;
+        right: 20px;
+        bottom: 20px; /* Posición en la parte inferior */
+        box-sizing: border-box; /* Asegura que el padding no afecte el tamaño total */
+        background: wheat; /* Fondo blanco para el carrito */
+        overflow-y: auto; /* Permite scroll interno si el contenido es grande */
+        max-height: 300px; /* Limita la altura máxima para evitar sobreposición */
+        z-index: 1000; /* Asegura que el carrito esté encima de otros elementos */
+    }
+
+    .cart-items {
+        margin-top: 10px; /* Espacio superior para los elementos del carrito */
+        font-size: 14px; /* Tamaño de la fuente */
+    }
+
+    /* Asegura que el título del carrito no sea demasiado grande */
+    .cart h2 {
+        font-size: 16px;
+        margin-bottom: 10px; /* Espacio inferior para el título */
+    }
+
+    /* Ajusta los elementos dentro del carrito */
+    .cart-items p {
+        margin: 5px 0; /* Espacio vertical entre los elementos */
+    }
+    
+    .cart-total {
+        margin-top: 20px; /* Separar del listado de productos */
+        font-weight: bold; /* Destacar el total */
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Desserts</h1>
+
+  <div class="product-list"></div>
+
+  <div class="cart">
+    <h2>Your Cart (<span class="cart-quantity">0</span>)</h2>
+    <div class="cart-items">Your added items will appear here</div>
+    <div class="cart-total">Total: $<span class="cart-total-amount">0.00</span></div>
+  </div>
+
+  <div class="attribution">
+    Challenge by <a href="https://www.frontendmentor.io?ref=challenge">Frontend Mentor</a>. 
+    Coded by <a href="#">Rodolfo Fierro</a>.
+  </div>
+
+  <script>
+    // Clase para manejar un producto
+    class Product {
+        constructor(name, category, price, image) {
+            this.name = name;
+            this.category = category;
+            this.price = price;
+            this.image = image;
+        }
+
+        render() {
+            return `
+                <div class="product-item">
+                    <img src="${this.image}" alt="${this.name}">
+                    <h2>${this.name}</h2>
+                    <p>${this.category}</p>
+                    <p>$${this.price.toFixed(2)}</p>
+                    <button class="add-to-cart" data-name="${this.name}" data-price="${this.price}">Add to Cart</button>
+                    <button class="remove-from-cart" data-name="${this.name}">Remove from Cart</button>
+                </div>
+            `;
+        }
+    }
+
+    // Clase para manejar el carrito
+    class Cart {
+        constructor() {
+            this.items = [];
+        }
+
+        addItem(product) {
+            const existingProduct = this.items.find(item => item.name === product.name);
+
+            if (existingProduct) {
+                existingProduct.quantity += 1;
+            } else {
+                this.items.push({ name: product.name, price: product.price, quantity: 1 });
+            }
+            this.updateCartUI();
+        }
+
+        removeItem(productName) {
+            const existingProduct = this.items.find(item => item.name === productName);
+
+            if (existingProduct) {
+                existingProduct.quantity -= 1;
+                if (existingProduct.quantity === 0) {
+                    this.items = this.items.filter(item => item.name !== productName);
+                }
+            }
+            this.updateCartUI();
+        }
+
+        updateCartUI() {
+            const cartItemsContainer = document.querySelector('.cart-items');
+            const cartQuantity = document.querySelector('.cart-quantity');
+            const cartTotalAmount = document.querySelector('.cart-total-amount');
+
+            cartItemsContainer.innerHTML = '';
+            let total = 0;
+            this.items.forEach(item => {
+                const cartItem = document.createElement('div');
+                cartItem.innerHTML = `
+                    <p>${item.name} x ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}</p>
+                `;
+                cartItemsContainer.appendChild(cartItem);
+                total += item.price * item.quantity;
+            });
+            cartQuantity.textContent = this.items.reduce((total, item) => total + item.quantity, 0);
+            cartTotalAmount.textContent = total.toFixed(2);
+        }
+    }
+
+    // Inicialización
+    document.addEventListener('DOMContentLoaded', () => {
+        const productList = document.querySelector('.product-list');
+        const cart = new Cart();
+
+        const products = [
+            new Product("Waffle with Berries", "Waffle", 6.50, "./assets/images/image-waffle-thumbnail.jpg"),
+            new Product("Vanilla Bean Crème Brûlée", "Crème Brûlée", 7.00, "./assets/images/image-creme-brulee-thumbnail.jpg"),
+            new Product("Macaron Mix of Five", "Macaron", 8.00, "./assets/images/image-macaron-thumbnail.jpg"),
+            new Product("Classic Tiramisu", "Tiramisu", 5.50, "./assets/images/image-tiramisu-thumbnail.jpg"),
+            new Product("Pistachio Baklava", "Baklava", 4.00, "./assets/images/image-baklava-thumbnail.jpg"),
+            new Product("Lemon Meringue Pie", "Pie", 5.00, "./assets/images/image-meringue-thumbnail.jpg"),
+            new Product("Red Velvet Cake", "Cake", 4.50, "./assets/images/image-cake-thumbnail.jpg"),
+            new Product("Salted Caramel Brownie", "Brownie", 4.50, "./assets/images/image-brownie-thumbnail.jpg"),
+            new Product("Vanilla Panna Cotta", "Panna Cotta", 6.50, "./assets/images/image-panna-cotta-thumbnail.jpg"),
+        ];
+
+        // Renderizar los productos
+        products.forEach(product => {
+            productList.innerHTML += product.render();
+        });
+
+        // Manejo de eventos
+        productList.addEventListener('click', event => {
+            if (event.target.classList.contains('add-to-cart')) {
+                const name = event.target.dataset.name;
+                const price = parseFloat(event.target.dataset.price);
+                const product = products.find(p => p.name === name);
+                cart.addItem(product);
+            }
+
+            if (event.target.classList.contains('remove-from-cart')) {
+                const name = event.target.dataset.name;
+                cart.removeItem(name);
+            }
+        });
+    });
+  </script>
+
+</body>
+</html>
